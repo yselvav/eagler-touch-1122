@@ -44,12 +44,14 @@ The `isActive` callback is useful when a host page has a separate account or con
 
 ## Validation and scope
 
-Run `npm ci && npx playwright install chromium webkit && npm test`. The test suite exercises movement, look, action release, hotbar, GUI clicks, chat entry, portrait layout, desktop gating, and incompatibility handling in mobile browser emulation. Earlier integration work also exercised a compatible 1.12.2 single-player world in Android Chromium emulation. **Physical Android/iPhone tests, a fresh public-client integration, and all 1.12.2 build variants remain unverified.** Emulated WebKit is not a substitute for an iPhone.
+Run `npm ci && npx playwright install chromium webkit && npm test`. The test suite exercises movement, look, action release, hotbar, GUI clicks, chat entry, portrait layout, desktop gating, and incompatibility handling in mobile browser emulation. A [local 1.12.2 single-player test](docs/VALIDATION.md) with the standalone controller also confirmed startup, player movement, camera rotation and inventory controls in Android Chromium emulation. **Physical Android/iPhone tests, a separate host's public-client integration, and all 1.12.2 build variants remain unverified.** Emulated WebKit is not a substitute for an iPhone.
 
-The bridge relies on internal names that can change between Eaglercraft/ModAPI builds. It assumes default Minecraft key bindings. Treat `0.1.0` as a starting point for compatible hosts, not universal 1.12.2 support. See the [test plan](docs/TESTING.md).
+The bridge relies on internal names that can change between Eaglercraft/ModAPI builds. It assumes default Minecraft key bindings. Treat `0.1.x` as a starting point for compatible hosts, not universal 1.12.2 support. See the [test plan](docs/TESTING.md).
 
 ## Community and licensing
 
 Contributions and compatibility reports are welcome. Include the client build/version, ModAPI version, browser/device, and which hook check fails. Do not include account details or server credentials in reports.
+
+See [contributing](CONTRIBUTING.md) for focused fixes and device reports, and [runtime privacy](docs/PRIVACY.md) for what this small controller does and does not access.
 
 This controller's code is MIT-licensed. EaglerMobile is separately Apache-2.0-licensed; this repository credits it as prior art without redistributing its code. All game/client assets are excluded and retain their own terms.

@@ -14,6 +14,10 @@ On a minimal Linux host, install Playwright's browser libraries with `npx playwr
 
 The suite uses a small `ModAPI` fixture rather than shipping a game client. It checks desktop gating, missing hooks, joystick press/release, simultaneous look and movement, pointer cancellation, hit/use release, hotbar, GUI click/back, chat text entry, and portrait layout in Android Chromium and WebKit mobile emulation. Passing these tests proves the DOM adapter behavior against the fixture; it does **not** prove a particular game build accepts every event.
 
+Regression checks also cover CSS isolation from host buttons, release of input on canvas replacement, cleared camera motion after focus loss, lost GUI pointer capture, and rejection of an invalid canvas selector before the input bridge is modified.
+
+The startup-panel tests require both a trusted user click and a completed native gate before the adapter hides the leftover panel. A synthetic click or incomplete gate leaves it visible.
+
 ## Compatible-client smoke test
 
 Use a legally hosted 1.12.2 client that exposes the required hooks, ideally a local single-player world first. On Android Chrome and iPhone Safari, test:

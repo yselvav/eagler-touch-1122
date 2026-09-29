@@ -33,6 +33,6 @@ The controller changes `pointerLockSupported` and the compatible `mouseSetGrabbe
 ## References
 
 - [EaglerMobile](https://github.com/FlamedDogo99/EaglerMobile) (1.8.8-focused prior art; Apache-2.0)
-- [EaglerForge ModAPI documentation](https://github.com/eaglerfabric/EaglerFabric/blob/main/docs/apidoc/index.md) (API concepts and unstable generated property names)
+- [EaglerForge ModAPI documentation](https://github.com/eaglerforge/EaglerForgeInjector/blob/main/docs/apidoc/index.md) (API concepts and unstable generated property names)
 
 These references are informational. No code or binary from them is included here.

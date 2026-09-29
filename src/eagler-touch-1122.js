@@ -17,6 +17,12 @@
     console.error('[EaglerTouch1122] Incompatible build: nlei_PlatformInput input bridge is unavailable.');
     return;
   }
+  var canvasSelector = options.canvasSelector || '#game_frame canvas';
+  try { document.querySelector(canvasSelector); }
+  catch (_) {
+    console.error('[EaglerTouch1122] Invalid canvasSelector. Input was not patched.');
+    return;
+  }
 
   // Minecraft checks isMouseGrabbed() each tick and opens pause if it is false.
   // On iOS the native method returns early because pointer lock is unsupported.
@@ -42,6 +48,7 @@
   var engineReady = false;
   var controllerStyle = null;
   var canvasTouchAction = null;
+  var activatedPrompt = null;
   var keyDefs = {
     forward: ['w', 'KeyW', 87], back: ['s', 'KeyS', 83],
     left: ['a', 'KeyA', 65], right: ['d', 'KeyD', 68],
@@ -99,7 +106,7 @@
     if (nub) nub.style.transform = 'translate(-50%,-50%)';
     if (stick) stick.classList.remove('active');
     if (root) root.querySelectorAll('.ec1122-touch-btn.active').forEach(function (e) { e.classList.remove('active'); });
-    if (reason === 'hidden' && input) { input.mouseDX = 0; input.mouseDY = 0; }
+    input.mouseDX = 0; input.mouseDY = 0;
   }
   function prop(obj, name) {
     if (!obj) return null;
@@ -115,10 +122,27 @@
     try { return String(value.getClass ? value.getClass().getName() : value.constructor && value.constructor.name || ''); }
     catch (_) { return ''; }
   }
+  function onNativeLaunch(ev) {
+    if (!ev.isTrusted || !ev.target || typeof ev.target.closest !== 'function') return;
+    var button = ev.target.closest('._eaglercraftX_mobile_launch_client');
+    var panel = button && button.closest('._eaglercraftX_mobile_press_any_key');
+    if (!panel || panel !== input.mobilePressAnyKeyScreen) return;
+    // Let the native button handler run first. Audio resume still needs this real gesture.
+    activatedPrompt = panel;
+    var audio = hooks._rippedStaticProperties.nlei_PlatformAudio;
+    try {
+      if (audio && audio.audioctx && typeof audio.audioctx.resume === 'function') {
+        var resumed = audio.audioctx.resume();
+        if (resumed && typeof resumed.catch === 'function') resumed.catch(function () {});
+      }
+    } catch (_) {}
+  }
   function tick() {
     if (input.pointerLockSupported !== 0) input.pointerLockSupported = 0;
-    var selected = document.querySelector(options.canvasSelector || '#game_frame canvas');
+    var selected = document.querySelector(canvasSelector);
+    if (selected && selected.tagName !== 'CANVAS') selected = null;
     if (selected !== canvas) {
+      release('canvas');
       if (canvas) canvas.style.touchAction = canvasTouchAction;
       canvas = selected;
       canvasTouchAction = canvas ? canvas.style.touchAction : null;
@@ -126,6 +150,12 @@
     }
     var scr = screen();
     var player = !!(ModAPI.player || prop(ModAPI.mcinstance, '$player'));
+    // Some compatible builds leave the launch panel attached after startup.
+    // Hide only the engine-owned panel the user clicked, once its gate has completed.
+    if (activatedPrompt && canvas && (scr || player) && input.hasShownPressAnyKey === 1 && input.isOnMobilePressAnyKey === 0) {
+      activatedPrompt.style.setProperty('display', 'none', 'important');
+      activatedPrompt = null;
+    }
     var active = true;
     if (typeof options.isActive === 'function') {
       try { active = !!options.isActive(); }
@@ -234,6 +264,9 @@
     mouse('mousemove', 0, ev.clientX, ev.clientY);
     mouse('mouseup', 0, ev.clientX, ev.clientY);
   }
+  function onGuiCaptureLost(ev) {
+    if (guiId === ev.pointerId) release('capture');
+  }
   function captureText(ev) {
     if (!textfield || ev.target !== textfield || ev.ec1122Touch) return;
     ev.stopImmediatePropagation();
@@ -257,21 +290,21 @@
       #ec1122-touch-stick:after{content:"";position:absolute;inset:22px;border-radius:50%;border:1px solid #ffffff44}#ec1122-touch-nub{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:#fca311d9;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 2px 12px #0008}\
       .ec1122-touch-btn{position:absolute;display:grid;place-items:center;width:54px;height:54px;border:1.5px solid #ffffffa0;border-radius:16px;background:#151515bd;color:#fff;box-shadow:0 3px 12px #000b;pointer-events:auto;touch-action:none;user-select:none;padding:0;font:700 14px system-ui,sans-serif}\
       .ec1122-touch-btn.active{background:#fca311;color:#111}.ec1122-touch-btn:focus{outline:none}\
-      [data-action="jump"]{right:max(14px,env(safe-area-inset-right));bottom:max(34px,env(safe-area-inset-bottom));width:65px;height:65px}\
-      [data-action="attack"]{right:max(94px,calc(env(safe-area-inset-right) + 80px));bottom:max(21px,env(safe-area-inset-bottom))}\
-      [data-action="use"]{right:max(18px,env(safe-area-inset-right));bottom:max(112px,calc(env(safe-area-inset-bottom) + 79px))}\
-      [data-action="sneak"]{left:max(143px,calc(env(safe-area-inset-left) + 130px));bottom:max(30px,env(safe-area-inset-bottom));width:48px;height:48px}\
-      [data-action="inventory"]{right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top))}\
-      [data-action="chat"]{right:max(76px,calc(env(safe-area-inset-right) + 64px));top:max(12px,env(safe-area-inset-top))}\
-      [data-action="pause"]{left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top))}\
-      [data-action="sprint"]{left:max(138px,calc(env(safe-area-inset-left) + 124px));bottom:max(92px,calc(env(safe-area-inset-bottom) + 76px));width:52px;height:46px;font-size:11px}\
-      [data-action="previous"]{left:calc(50% - 60px);bottom:max(65px,calc(env(safe-area-inset-bottom) + 48px));width:46px;height:42px}\
-      [data-action="next"]{left:calc(50% + 14px);bottom:max(65px,calc(env(safe-area-inset-bottom) + 48px));width:46px;height:42px}\
+      #ec1122-touch [data-action="jump"]{right:max(14px,env(safe-area-inset-right));bottom:max(34px,env(safe-area-inset-bottom));width:65px;height:65px}\
+      #ec1122-touch [data-action="attack"]{right:max(94px,calc(env(safe-area-inset-right) + 80px));bottom:max(21px,env(safe-area-inset-bottom))}\
+      #ec1122-touch [data-action="use"]{right:max(18px,env(safe-area-inset-right));bottom:max(112px,calc(env(safe-area-inset-bottom) + 79px))}\
+      #ec1122-touch [data-action="sneak"]{left:max(143px,calc(env(safe-area-inset-left) + 130px));bottom:max(30px,env(safe-area-inset-bottom));width:48px;height:48px}\
+      #ec1122-touch [data-action="inventory"]{right:max(12px,env(safe-area-inset-right));top:max(12px,env(safe-area-inset-top))}\
+      #ec1122-touch [data-action="chat"]{right:max(76px,calc(env(safe-area-inset-right) + 64px));top:max(12px,env(safe-area-inset-top))}\
+      #ec1122-touch [data-action="pause"]{left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top))}\
+      #ec1122-touch [data-action="sprint"]{left:max(138px,calc(env(safe-area-inset-left) + 124px));bottom:max(92px,calc(env(safe-area-inset-bottom) + 76px));width:52px;height:46px;font-size:11px}\
+      #ec1122-touch [data-action="previous"]{left:calc(50% - 60px);bottom:max(65px,calc(env(safe-area-inset-bottom) + 48px));width:46px;height:42px}\
+      #ec1122-touch [data-action="next"]{left:calc(50% + 14px);bottom:max(65px,calc(env(safe-area-inset-bottom) + 48px));width:46px;height:42px}\
       #ec1122-touch-gui-back{display:none;position:absolute;left:max(12px,env(safe-area-inset-left));top:max(12px,env(safe-area-inset-top));width:auto;min-width:66px;height:44px;padding:0 13px;border:1.5px solid #fff9;border-radius:12px;background:#111d;color:#fff;pointer-events:auto;touch-action:manipulation;font:700 14px system-ui,sans-serif}\
       #ec1122-touch[data-mode="gui"] #ec1122-touch-gui-back{display:grid;place-items:center}\
       #ec1122-touch-text{position:absolute;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;gap:8px;padding:8px;border-radius:12px;background:#111e;pointer-events:auto}\
       #ec1122-touch-text[hidden]{display:none}#ec1122-touch-text input{min-width:0;flex:1;height:42px;font:16px system-ui}#ec1122-touch-text button{height:42px;padding:0 14px;border-radius:8px;background:#fca311;color:#111}\
-      @media(orientation:portrait){#ec1122-touch-stick{width:104px;height:104px;bottom:max(88px,calc(env(safe-area-inset-bottom) + 70px))}#ec1122-touch-look{left:37%;width:63%;top:17%;height:55%}.ec1122-touch-btn{width:49px;height:49px}[data-action="jump"]{bottom:max(101px,calc(env(safe-area-inset-bottom) + 83px))}[data-action="attack"]{bottom:max(33px,env(safe-area-inset-bottom));right:max(86px,calc(env(safe-area-inset-right) + 72px))}[data-action="use"]{bottom:max(166px,calc(env(safe-area-inset-bottom) + 148px))}[data-action="sneak"]{bottom:max(30px,env(safe-area-inset-bottom));left:max(18px,env(safe-area-inset-left))}[data-action="sprint"]{bottom:max(205px,calc(env(safe-area-inset-bottom) + 187px));left:max(20px,env(safe-area-inset-left))}[data-action="previous"],[data-action="next"]{bottom:max(81px,calc(env(safe-area-inset-bottom) + 63px))}}';
+      @media(orientation:portrait){#ec1122-touch-stick{width:104px;height:104px;bottom:max(88px,calc(env(safe-area-inset-bottom) + 70px))}#ec1122-touch-look{left:37%;width:63%;top:17%;height:55%}.ec1122-touch-btn{width:49px;height:49px}#ec1122-touch [data-action="jump"]{bottom:max(101px,calc(env(safe-area-inset-bottom) + 83px))}#ec1122-touch [data-action="attack"]{bottom:max(33px,env(safe-area-inset-bottom));right:max(86px,calc(env(safe-area-inset-right) + 72px))}#ec1122-touch [data-action="use"]{bottom:max(166px,calc(env(safe-area-inset-bottom) + 148px))}#ec1122-touch [data-action="sneak"]{bottom:max(30px,env(safe-area-inset-bottom));left:max(18px,env(safe-area-inset-left))}#ec1122-touch [data-action="sprint"]{bottom:max(205px,calc(env(safe-area-inset-bottom) + 187px));left:max(20px,env(safe-area-inset-left))}#ec1122-touch [data-action="previous"],#ec1122-touch [data-action="next"]{bottom:max(81px,calc(env(safe-area-inset-bottom) + 63px))}}';
     document.head.appendChild(controllerStyle);
     root = document.createElement('div'); root.id = 'ec1122-touch'; root.dataset.mode = 'loading';
     root.innerHTML = '<div class="ec1122-touch-world"><div id="ec1122-touch-look" aria-label="Look around"></div><div id="ec1122-touch-stick" aria-label="Move"><div id="ec1122-touch-nub"></div></div>' +
@@ -293,6 +326,7 @@
     document.addEventListener('pointermove', onGuiMove, true);
     document.addEventListener('pointerup', onGuiUp, true);
     document.addEventListener('pointercancel', onGuiUp, true);
+    document.addEventListener('lostpointercapture', onGuiCaptureLost, true);
     window.addEventListener('keydown', captureText, true);
     window.addEventListener('keyup', captureText, true);
     textbar.addEventListener('submit', function (ev) {
@@ -307,6 +341,7 @@
     setInterval(tick, 50); tick(); engineReady = true;
   }
   ModAPI.addEventListener('load', mount);
+  document.addEventListener('click', onNativeLaunch);
   if (options.mountNow === true) mount();
   window.EaglerTouch1122 = { version: 1, get mode() { return mode; }, release: release,
     inspect: function () { return { mode: mode, pointers: pointers.size, held: Array.from(moveKeys), grab: input.pointerLockFlag,

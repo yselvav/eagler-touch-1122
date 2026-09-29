@@ -135,6 +135,70 @@ for (const browserName of ['chromium', 'webkit']) {
       await browser.close();
     }
   });
+  test(`${browserName}: host isolation and interrupted input`, async () => {
+    const browser = await launch(browserName);
+    const page = await browser.newPage({ ...devices[browserName === 'webkit' ? 'iPhone 13' : 'Pixel 7'] });
+    try {
+      await fixture(page);
+      await page.evaluate(() => {
+        const hostButton = document.createElement('button');
+        hostButton.id = 'host-action'; hostButton.dataset.action = 'use';
+        document.body.appendChild(hostButton);
+      });
+      assert.equal(await page.locator('#host-action').evaluate(el => getComputedStyle(el).right), 'auto', 'controller CSS must not style host buttons');
+
+      await pointer(page, '#ec1122-touch-stick', 'pointerdown', 70, 60, 200);
+      await pointer(page, '#ec1122-touch-stick', 'pointermove', 70, 60, 160);
+      await pointer(page, '[data-action="attack"]', 'pointerdown', 71, 300, 350);
+      await page.evaluate(() => {
+        const oldCanvas = document.querySelector('canvas');
+        window.__oldMouseUps = 0;
+        oldCanvas.addEventListener('mouseup', () => window.__oldMouseUps++);
+        oldCanvas.replaceWith(oldCanvas.cloneNode());
+      });
+      await page.waitForTimeout(150);
+      assert.deepEqual(await page.evaluate(() => EaglerTouch1122.inspect().held), [], 'canvas replacement must release keys');
+      assert.equal(await page.evaluate(() => __oldMouseUps), 1, 'release must target the old canvas');
+
+      await pointer(page, '#ec1122-touch-look', 'pointerdown', 72, 250, 300);
+      await pointer(page, '#ec1122-touch-look', 'pointermove', 72, 270, 280);
+      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      assert.deepEqual(await page.evaluate(() => EaglerTouch1122.inspect().look), [0, 0]);
+
+      await page.evaluate(() => { ModAPI.mcinstance.$currentScreen = {}; window.__guiMouseUps = 0;
+        document.querySelector('canvas').addEventListener('mouseup', () => window.__guiMouseUps++); });
+      await page.waitForFunction(() => EaglerTouch1122.mode === 'gui');
+      await pointer(page, 'canvas', 'pointerdown', 73, 150, 150);
+      await pointer(page, 'canvas', 'lostpointercapture', 73, 150, 150);
+      assert.equal(await page.evaluate(() => __guiMouseUps), 1);
+    } finally { await browser.close(); }
+  });
+  test(`${browserName}: native startup needs a real tap and completed gate`, async () => {
+    const browser = await launch(browserName);
+    const page = await browser.newPage({ ...devices[browserName === 'webkit' ? 'iPhone 13' : 'Pixel 7'] });
+    try {
+      await fixture(page);
+      await page.evaluate(() => {
+        const panel = document.createElement('div');
+        panel.className = '_eaglercraftX_mobile_press_any_key';
+        panel.style.cssText = 'position:fixed;inset:0;z-index:1000;background:white';
+        panel.innerHTML = '<button class="_eaglercraftX_mobile_launch_client">Launch</button>';
+        document.querySelector('#game_frame').appendChild(panel);
+        __statics.mobilePressAnyKeyScreen = panel;
+        __statics.hasShownPressAnyKey = 1; __statics.isOnMobilePressAnyKey = 0;
+        panel.querySelector('button').click();
+      });
+      await page.waitForTimeout(150);
+      assert(await page.locator('._eaglercraftX_mobile_press_any_key').isVisible(), 'synthetic click cannot dismiss the gate');
+      await page.evaluate(() => { __statics.hasShownPressAnyKey = 0; __statics.isOnMobilePressAnyKey = 1; });
+      await page.locator('._eaglercraftX_mobile_launch_client').click();
+      await page.waitForTimeout(150);
+      assert(await page.locator('._eaglercraftX_mobile_press_any_key').isVisible(), 'incomplete gate must remain visible');
+      await page.evaluate(() => { __statics.hasShownPressAnyKey = 1; __statics.isOnMobilePressAnyKey = 0; });
+      await page.waitForFunction(() => getComputedStyle(__statics.mobilePressAnyKeyScreen).display === 'none');
+      assert.equal(await page.evaluate(() => __statics.mobilePressAnyKeyScreen.isConnected), true, 'retain the engine-owned node for its cleanup');
+    } finally { await browser.close(); }
+  });
 }
 
 test('fine-pointer desktop does not patch input or mount controls', async () => {
@@ -170,4 +234,22 @@ test('missing input bridge fails closed', async () => {
   } finally {
     await browser.close();
   }
+});
+
+test('invalid canvas selector leaves the original input bridge unchanged', async () => {
+  const browser = await launch('chromium');
+  const page = await browser.newPage();
+  try {
+    await page.setContent(markup);
+    await page.evaluate(() => {
+      window.EaglerTouch1122Config = { enabled: true, canvasSelector: '[' };
+      window.__originalGrab = function () {};
+      window.ModAPI = { hooks: { _rippedStaticProperties: { nlei_PlatformInput: { pointerLockSupported: 1 } },
+        methods: { nlei_PlatformInput_mouseSetGrabbed: window.__originalGrab } }, addEventListener() {} };
+    });
+    await page.addScriptTag({ path: scriptPath });
+    assert.equal(await page.evaluate(() => ModAPI.hooks.methods.nlei_PlatformInput_mouseSetGrabbed === __originalGrab), true);
+    assert.equal(await page.evaluate(() => ModAPI.hooks._rippedStaticProperties.nlei_PlatformInput.pointerLockSupported), 1);
+    assert.equal(await page.evaluate(() => typeof window.EaglerTouch1122), 'undefined');
+  } finally { await browser.close(); }
 });

@@ -1,0 +1,43 @@
+name: Compatibility report
+description: Report a touch-control problem or a verified working client/device.
+title: "[Compatibility] "
+body:
+  - type: markdown
+    attributes:
+      value: "Please remove account details, private addresses, authentication links and session IDs. Do not attach game binaries or complete logs."
+  - type: input
+    id: client
+    attributes:
+      label: Client build and ModAPI version
+      description: Use version numbers or a public source reference, not a private deployment URL.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device, operating system and browser versions
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Test environment
+      options:
+        - Physical Android device
+        - Physical iPhone or iPad
+        - Desktop browser
+        - Browser emulation or automated fixture
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Steps, expected result and actual result
+      description: Include orientation and whether menus, world movement, camera, chat and app-switch recovery work.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: Relevant redacted error or screenshot
+      description: Optional. Include only what is needed to reproduce the problem.
