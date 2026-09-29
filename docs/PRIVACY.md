@@ -2,7 +2,7 @@
 
 The controller is ordinary, readable JavaScript. It creates its own controls, reads game input/GUI state, sends keyboard and mouse events to the game, and updates the compatible mouse-input bridge. The text field handles text the player explicitly submits to the game. Following a real click on the native launch button, it can resume the game's existing audio context and hide a leftover startup panel after the native gate completes.
 
-The controller contains no analytics, network requests, remote script imports, cookie access or persistent-storage access. There are no runtime dependencies. Playwright is a development dependency used only by the test suite. The MineX homepage in the README is an attribution link, not a connection made by the controller.
+The controller contains no analytics, network requests, remote script imports, cookie access or persistent-storage access. There are no runtime dependencies. Playwright is a development dependency used only by the test suite. The MineX scanner link in the README is an attribution link, not a connection made by the controller.
 
 The repository publishes the controller implementation, documentation, tests, license and CI configuration. It does not include the originating host's backend, authentication, player records, account integrations, server configuration or game/client assets. Public GitHub ownership and commit attribution remain visible.
 

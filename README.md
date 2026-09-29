@@ -2,7 +2,7 @@
 
 An **experimental, source-only** mobile controller for compatible Eaglercraft 1.12.2 browser clients on Android and iPhone. It uses EaglerForge `ModAPI` and the `nlei_PlatformInput` input bridge. Features include a movement joystick, drag-to-look camera, jump, hit/use, crouch, sprint, hotbar buttons, touch-to-click menus, and chat input. It is disabled on desktop unless explicitly enabled.
 
-Built by [MineX](https://minex.gg/) while adapting its browser game for phones, and released so other 1.12.2 hosts can improve and reuse the work. The repository contains no MineX launcher, account, wallet, event, server, game binary, or deployment configuration. **It is not a complete Eaglercraft client.**
+Built by [MineX](https://scan.minex.gg/) while adapting its browser game for phones, and released so other 1.12.2 hosts can improve and reuse the work. The repository contains no MineX launcher, account, wallet, event, server, game binary, or deployment configuration. **It is not a complete Eaglercraft client.**
 
 ## Why this exists
 
